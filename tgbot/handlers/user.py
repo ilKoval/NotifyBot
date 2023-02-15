@@ -4,7 +4,7 @@ from aiogram.dispatcher.storage import FSMContext
 from aiogram.types import Message, CallbackQuery
 from tgbot.config import Config
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-from tgbot.filters.user import AddTimeFilter, DeleteTaskFilter, DetailTaskFilter, EditTaskFilter, MarkCanceledFilter, MarkReadyFilter, OffTimeFilter, OnTimeFilter, RestoreTaskFilter, DeleteTimeFilter
+from tgbot.filters.user import AddTimeFilter, DeleteTaskFilter, DetailTaskFilter, EditTaskFilter, MarkCanceledFilter, MarkReadyFilter, OffTimeFilter, OnTimeFilter, RestoreTaskFilter, DeleteTimeFilter, SetTimezoneFilter
 from tgbot.keyboards import inline
 from tgbot.misc import db_methods
 from tgbot.misc.states import Tasks, History, Settings
@@ -16,7 +16,11 @@ async def user_start(message: Message, state: FSMContext):  # START COMMAND
     config: Config = message.bot['config']
     db_methods.add_user(config.db.FILE_PATH,
                         message.from_user.id, message.from_user.username)
-    await message.answer("Hello, user!", reply_markup=inline.main_menu())
+    user_info = db_methods.read_user(config.db.FILE_PATH, message.from_user.id)
+    text = "Hello, user!"
+    if user_info['timezone'] == None:
+        text = "Hello, user!\n❗️Please setup timezone in your settings"
+    await message.answer(text, reply_markup=inline.main_menu())
 
 
 async def home(callback: CallbackQuery, state: FSMContext):  # HOME BUTTON
@@ -127,6 +131,34 @@ async def settings(callback: CallbackQuery, state: FSMContext):  # SETTINGS BUTT
     await callback.answer()
 
 
+async def timezone_info(callback: CallbackQuery, state: FSMContext):
+    await state.set_state(Settings.timezone_info)
+    config: Config = callback.bot['config']
+    user_info = db_methods.read_user(
+        config.db.FILE_PATH, callback.from_user.id)
+    await callback.message.edit_text(f'Current timezone UTC{user_info["timezone"]}')
+    await callback.message.edit_reply_markup(inline.timezone_info())
+    await callback.answer()
+
+
+async def timezone_set_init(callback: CallbackQuery, state: FSMContext):
+    await state.set_state(Settings.set_timezone)
+    await callback.message.edit_text(f'Enter timezone in format UTC')
+    await callback.message.edit_reply_markup(InlineKeyboardMarkup().add(InlineKeyboardButton('⬅️ Назад', callback_data='back')))
+    await callback.answer()
+
+
+async def timezone_set(message: Message, state: FSMContext):
+    await state.set_state(Settings.timezone_info)
+    timezone = message.text[3:]
+    config: Config = message.bot['config']
+    db_methods.set_timezone(config.db.FILE_PATH,
+                            message.from_user.id, timezone)
+    user_info = db_methods.read_user(
+        config.db.FILE_PATH, message.from_user.id)
+    await message.answer(f'Current timezone UTC{user_info["timezone"]}', reply_markup=inline.timezone_info())
+
+
 async def times(callback: CallbackQuery, state: FSMContext):  # TIME MENU BUTTON
     await state.set_state(Settings.time_menu)
     config: Config = callback.bot['config']
@@ -200,9 +232,15 @@ async def clear_all(callback: CallbackQuery, state: FSMContext):  # CLEAR ALL BU
 
 async def back(callback: CallbackQuery, state: FSMContext):  # BACK BUTTON
     current_state = await state.get_state()
+    config: Config = callback.bot['config']
     if current_state in ['Tasks:tasks_menu', 'History:history_menu', 'Settings:settings_menu']:
         await state.set_state(None)
-        await callback.message.edit_text('Hello, user!')
+        user_info = db_methods.read_user(
+            config.db.FILE_PATH, callback.from_user.id)
+        text = "Hello, user!"
+        if user_info['timezone'] == None:
+            text = "Hello, user!\n❗️Please setup timezone in your settings"
+        await callback.message.edit_text(text)
         await callback.message.edit_reply_markup(inline.main_menu())
     elif current_state in ['Tasks:add_task', 'Tasks:detail']:
         await tasks(callback, state)
@@ -219,6 +257,12 @@ async def back(callback: CallbackQuery, state: FSMContext):  # BACK BUTTON
         await history(callback, state)
     elif current_state == 'Settings:time_menu':
         await settings(callback, state)
+    elif current_state == 'Settings:add_time':
+        await times(callback, state)
+    elif current_state == 'Settings:timezone_info':
+        await settings(callback, state)
+    elif current_state == 'Settings:set_timezone':
+        await timezone_info(callback, state)
     await callback.answer()
 
 
@@ -270,6 +314,15 @@ def register_user_handlers(dp: Dispatcher):  # REGISTER HANDLERS
     # ---------------------------------------------------------------SETTINGS MENU-------------------------------------------------------------------------
     dp.register_callback_query_handler(
         settings, text='settings', state=None)  # SETTINGS BUTTON
+
+    dp.register_callback_query_handler(
+        timezone_info, text='timezone', state=Settings.settings_menu)  # TIMEZONE INFO BUTTON
+
+    dp.register_callback_query_handler(
+        timezone_set_init, text='set timezone', state=Settings.timezone_info)  # SET TIMEZONE BUTTON
+
+    dp.register_message_handler(
+        timezone_set, SetTimezoneFilter(), state=Settings.set_timezone)  # SET TIMEZONE HANDLER
 
     dp.register_callback_query_handler(
         times, text='times', state=Settings.settings_menu)  # TIMES MENU BUTTON

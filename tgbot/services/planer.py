@@ -1,4 +1,3 @@
-import asyncio
 from aiogram import Bot, Dispatcher
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from tgbot.config import Config
@@ -25,11 +24,11 @@ def add_jobs(bot: Bot):
     config: Config = bot['config']
     users = db_methods.read_users(config.db.FILE_PATH)
     for user in users:
+        timezone = db_methods.read_user(config.db.FILE_PATH, user)['timezone']
         times = db_methods.read_times(load_config('.env').db.FILE_PATH, user)
-
         for time in times:
             if bool(time[1]):
-                h = time[0].split(':')[0]
+                h = int(time[0].split(':')[0]) + timezone
                 m = time[0].split(':')[1]
                 scheduler.add_job(send, 'cron', hour=int(h),
                                   minute=int(m), args=(bot, user))

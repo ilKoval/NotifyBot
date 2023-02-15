@@ -58,6 +58,11 @@ class AddTimeFilter(BoundFilter):
         return re.fullmatch('^\d\d:\d\d$', message.text)
 
 
+class SetTimezoneFilter(BoundFilter):
+    async def check(self, message: Message):
+        return re.fullmatch('^(UTC)[+-]?(\d{1,2})$', message.text)
+
+
 def register_user_filters(dp: Dispatcher):
     dp.filters_factory.bind(DeleteTimeFilter)
     dp.filters_factory.bind(AddTimeFilter)
@@ -69,3 +74,4 @@ def register_user_filters(dp: Dispatcher):
     dp.filters_factory.bind(DeleteTaskFilter)
     dp.filters_factory.bind(RestoreTaskFilter)
     dp.filters_factory.bind(EditTaskFilter)
+    dp.filters_factory.bind(SetTimezoneFilter)

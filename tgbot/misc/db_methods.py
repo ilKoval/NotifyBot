@@ -1,3 +1,4 @@
+import re
 import sqlite3
 import logging
 
@@ -5,7 +6,7 @@ import logging
 def create_db(db_path: str):
     base = sqlite3.connect(db_path)
     base.cursor().execute(
-        'CREATE TABLE IF NOT EXISTS users (user_id INTEGER PRIMARY KEY, user_name TEXT)')
+        'CREATE TABLE IF NOT EXISTS users (user_id INTEGER PRIMARY KEY, user_name TEXT, timezone INTEGER DEFAULT NULL)')
     base.commit()
     base.close()
     return logging.info('data-base.db created')
@@ -25,6 +26,20 @@ def add_user(db_path: str, user_id: int, user_name: str):
     base.commit()
     base.close()
     return logging.info(f'table user_{user_id} created')
+
+
+def read_user(db_path: str, user_id: int):
+    user = dict()
+    base = sqlite3.connect(db_path)
+    cursor = base.cursor()
+    cursor.execute(
+        f'SELECT * FROM users WHERE user_id = {user_id}')
+    data = cursor.fetchall()[0]
+    user['id'] = data[0]
+    user['user_name'] = data[1]
+    user['timezone'] = data[2]
+    base.close()
+    return user
 
 
 def read_tasks(db_path: str, user_id: int):
@@ -113,6 +128,16 @@ def clear_all(db_path: str, user_id: int, not_check=False):
     base.commit()
     base.close()
     return
+
+
+def set_timezone(db_path: str, user_id: int, timezone: str):
+    base = sqlite3.connect(db_path)
+    cursor = base.cursor()
+    cursor.execute(
+        f'UPDATE users SET timezone = {timezone} WHERE user_id = {user_id}')
+    base.commit()
+    base.close()
+    return logging.info(f'timezone changed for user {user_id}')
 
 
 def add_time(db_path: str, user_id: int, time: str):

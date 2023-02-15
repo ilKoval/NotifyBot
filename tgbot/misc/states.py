@@ -15,5 +15,7 @@ class History(StatesGroup):  # HISTORY MENU
 
 class Settings(StatesGroup):  # SETTINGS MENU
     settings_menu = State()
+    timezone_info = State()
+    set_timezone = State()
     time_menu = State()
     add_time = State()

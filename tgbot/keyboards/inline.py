@@ -56,6 +56,8 @@ def history_menu(data_list: list) -> InlineKeyboardMarkup:
 
 def settings_menu() -> InlineKeyboardMarkup:
     markup = InlineKeyboardMarkup()
+    timezone_btn = InlineKeyboardButton(
+        'Часовой пояс', callback_data='timezone')
     time_btn = InlineKeyboardButton(
         'Время напоминаний', callback_data='times')
     clear_tasks = InlineKeyboardButton(
@@ -65,7 +67,7 @@ def settings_menu() -> InlineKeyboardMarkup:
     clear_all = InlineKeyboardButton(
         'Удалить всё', callback_data='clear_all')
     back = InlineKeyboardButton('⬅️ Назад', callback_data='back')
-    markup.add(time_btn).add(clear_tasks).add(
+    markup.add(timezone_btn).add(time_btn).add(clear_tasks).add(
         clear_history).add(clear_all).add(back)
     return markup
 
@@ -100,6 +102,15 @@ def get_detail(data_list: list, id: int) -> tuple[str, InlineKeyboardMarkup]:
     text = 'Not Found'
     markup.add(back)
     return text, markup
+
+
+def timezone_info() -> InlineKeyboardMarkup:
+    markup = InlineKeyboardMarkup()
+    set_btn = InlineKeyboardButton(
+        'Установить часовой пояс', callback_data='set timezone')
+    back = InlineKeyboardButton('⬅️ Назад', callback_data='back')
+    markup.add(set_btn).add(back)
+    return markup
 
 
 def time_menu(data_list: list) -> InlineKeyboardMarkup:

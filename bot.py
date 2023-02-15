@@ -50,7 +50,7 @@ def register_all_handlers(dp: Dispatcher):
 logging.basicConfig(
     level=logging.INFO,
     format=u'%(filename)s:%(lineno)d #%(levelname)-8s [%(asctime)s] - %(name)s - %(message)s',
-    filename='info.log'
+    # filename='info.log'
 )
 config = load_config(".env")
 storage = RedisStorage2() if config.tg_bot.use_redis else MemoryStorage()
