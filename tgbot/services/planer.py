@@ -1,3 +1,4 @@
+from types import NoneType
 from aiogram import Bot, Dispatcher
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from tgbot.config import Config
@@ -11,7 +12,7 @@ from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 async def send(bot: Bot, user_id: int):
     config: Config = bot['config']
     text = 'Tasks:\n'
-    data = db_methods.read_tasks(config.db.FILE_PATH, user_id)
+    data = db_methods.send_tasks(config.db.FILE_PATH, user_id)
     if len(data) != 0:
         for task in data:
             text += f'{task[1]}\n'
@@ -25,6 +26,8 @@ def add_jobs(bot: Bot):
     users = db_methods.read_users(config.db.FILE_PATH)
     for user in users:
         timezone = db_methods.read_user(config.db.FILE_PATH, user)['timezone']
+        if timezone == NoneType:
+            timezone = 0
         times = db_methods.read_times(load_config('.env').db.FILE_PATH, user)
         for time in times:
             if bool(time[1]):

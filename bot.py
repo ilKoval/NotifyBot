@@ -1,5 +1,5 @@
-import asyncio
 import logging
+from background import keep_alive
 
 from aiogram import Bot, Dispatcher, executor
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
@@ -18,6 +18,8 @@ logger = logging.getLogger(__name__)
 
 
 async def on_startup(_):
+    with open('info.log', 'w') as file:
+        file.write('')
     db_methods.create_db(load_config('.env').db.FILE_PATH)
     register_all_middlewares(dp, config)
     register_all_filters(dp)
@@ -30,6 +32,7 @@ async def on_shutdown(_):
     logger.error("Bot stopped!")
     await dp.storage.close()
     await dp.storage.wait_closed()
+    await dp.bot.send_message(config.tg_bot.admin_ids[0], 'Bot stopped')
     # await bot.close()
 
 
@@ -62,8 +65,10 @@ scheduler = AsyncIOScheduler()
 bot['config'] = config
 bot['scheduler'] = scheduler
 
-
 if __name__ == '__main__':
     scheduler.start()
-    executor.start_polling(dp, on_startup=on_startup,
-                           on_shutdown=on_shutdown, skip_updates=True)
+    keep_alive()
+    executor.start_polling(dp,
+                           on_startup=on_startup,
+                           on_shutdown=on_shutdown,
+                           skip_updates=True)

@@ -4,7 +4,7 @@ from aiogram.dispatcher.storage import FSMContext
 from aiogram.types import Message, CallbackQuery
 from tgbot.config import Config
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-from tgbot.filters.user import AddTimeFilter, DeleteTaskFilter, DetailTaskFilter, EditTaskFilter, MarkCanceledFilter, MarkReadyFilter, OffTimeFilter, OnTimeFilter, RestoreTaskFilter, DeleteTimeFilter, SetTimezoneFilter
+from tgbot.filters.user import AddTimeFilter, MarkUnImpFilter, MarkImpFilter, DeleteTaskFilter, DetailTaskFilter, EditTaskFilter, MarkCanceledFilter, MarkReadyFilter, OffTimeFilter, OnTimeFilter, RestoreTaskFilter, DeleteTimeFilter, SetTimezoneFilter
 from tgbot.keyboards import inline
 from tgbot.misc import db_methods
 from tgbot.misc.states import Tasks, History, Settings
@@ -66,6 +66,18 @@ async def mark_cancel(callback: CallbackQuery, state: FSMContext):  # CANCEL TAS
     config: Config = callback.bot['config']
     id = callback.data.split(' ')[0]
     db_methods.mark_canceled(config.db.FILE_PATH, callback.from_user.id, id)
+    await tasks(callback, state)
+
+
+async def mark_imp(callback: CallbackQuery, state: FSMContext):  # CANCEL TASK BUTTON
+    config: Config = callback.bot['config']
+    id = callback.data.split(' ')[0]
+    db_methods.mark_important(config.db.FILE_PATH, callback.from_user.id, id)
+    await tasks(callback, state)
+async def mark_unimp(callback: CallbackQuery, state: FSMContext):  # CANCEL TASK BUTTON
+    config: Config = callback.bot['config']
+    id = callback.data.split(' ')[0]
+    db_methods.mark_unimportant(config.db.FILE_PATH, callback.from_user.id, id)
     await tasks(callback, state)
 
 
@@ -293,6 +305,10 @@ def register_user_handlers(dp: Dispatcher):  # REGISTER HANDLERS
                                 'text'], state=Tasks.edit)  # EDIT TASK TEXT HANDLER
 
     dp.register_callback_query_handler(mark_ready, MarkReadyFilter(), state=[
+                                       Tasks.tasks_menu, Tasks.detail])  # READY TASK BUTTON
+    dp.register_callback_query_handler(mark_imp, MarkImpFilter(), state=[
+                                       Tasks.tasks_menu, Tasks.detail])  # READY TASK BUTTON
+    dp.register_callback_query_handler(mark_unimp, MarkUnImpFilter(), state=[
                                        Tasks.tasks_menu, Tasks.detail])  # READY TASK BUTTON
 
     dp.register_callback_query_handler(mark_cancel, MarkCanceledFilter(), state=[

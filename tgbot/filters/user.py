@@ -18,6 +18,16 @@ class MarkReadyFilter(BoundFilter):
         return re.fullmatch('^\d+ ready$', callback.data)
 
 
+class MarkImpFilter(BoundFilter):
+    async def check(self, callback: CallbackQuery):
+        return re.fullmatch('^\d+ important$', callback.data)
+
+
+class MarkUnImpFilter(BoundFilter):
+    async def check(self, callback: CallbackQuery):
+        return re.fullmatch('^\d+ unimportant$', callback.data)
+
+
 class MarkCanceledFilter(BoundFilter):
     async def check(self, callback: CallbackQuery):
         return re.fullmatch('^\d+ cancel$', callback.data)
@@ -70,6 +80,8 @@ def register_user_filters(dp: Dispatcher):
     dp.filters_factory.bind(OffTimeFilter)
     dp.filters_factory.bind(DetailTaskFilter)
     dp.filters_factory.bind(MarkReadyFilter)
+    dp.filters_factory.bind(MarkImpFilter)
+    dp.filters_factory.bind(MarkUnImpFilter)
     dp.filters_factory.bind(MarkCanceledFilter)
     dp.filters_factory.bind(DeleteTaskFilter)
     dp.filters_factory.bind(RestoreTaskFilter)

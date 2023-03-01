@@ -18,7 +18,7 @@ def add_user(db_path: str, user_id: int, user_name: str):
     cursor.execute(
         f'INSERT INTO users (user_id, user_name) VALUES ({user_id}, "{user_name}") ON CONFLICT(user_id) DO UPDATE SET user_name="{user_name}"')
     cursor.execute(
-        f'CREATE TABLE IF NOT EXISTS user_{user_id} (id INTEGER PRIMARY KEY AUTOINCREMENT, text TEXT NOT NULL, is_ready BOOLEAN NOT NULL DEFAULT 0, is_canceled BOOLEAN NOT NULL DEFAULT 0)')
+        f'CREATE TABLE IF NOT EXISTS user_{user_id} (id INTEGER PRIMARY KEY AUTOINCREMENT, text TEXT NOT NULL, is_ready BOOLEAN NOT NULL DEFAULT 0, is_canceled BOOLEAN NOT NULL DEFAULT 0, important BOOLEAN NOT NULL DEFAULT 1)')
     cursor.execute(
         f'CREATE TABLE IF NOT EXISTS time_{user_id} (time TIME PRIMARY KEY, status BOOLEAN NOT NULL DEFAULT 1)')
     cursor.execute(
@@ -51,7 +51,20 @@ def read_tasks(db_path: str, user_id: int):
     notify = cursor.fetchall()
     base.close()
     for n in notify:
-        data_list.append([n[0], n[1], bool(n[2]), bool(n[3])])
+        data_list.append([n[0], n[1], bool(n[2]), bool(n[3]), bool(n[4])])
+    return data_list
+
+
+def send_tasks(db_path: str, user_id: int):
+    data_list = []
+    base = sqlite3.connect(db_path)
+    cursor = base.cursor()
+    cursor.execute(
+        f'SELECT * FROM user_{user_id} WHERE is_ready = 0 AND is_canceled = 0 AND important = 1')
+    notify = cursor.fetchall()
+    base.close()
+    for n in notify:
+        data_list.append([n[0], n[1], bool(n[2]), bool(n[3]), bool(n[4])])
     return data_list
 
 
@@ -122,9 +135,7 @@ def clear_all(db_path: str, user_id: int, not_check=False):
     if len(select) == 0 or not_check:
         cursor.execute(f'DROP TABLE user_{user_id}')
         cursor.execute(
-            f'CREATE TABLE user_{user_id} (id INTEGER PRIMARY KEY AUTOINCREMENT, text TEXT NOT NULL, is_ready BOOLEAN NOT NULL DEFAULT 0, is_canceled BOOLEAN NOT NULL DEFAULT 0)')
-        db_name = db_path.split('\\')[-1]
-        logging.info(f'user_{user_id} in {db_name} is clear')
+            f'CREATE TABLE user_{user_id} (id INTEGER PRIMARY KEY AUTOINCREMENT, text TEXT NOT NULL, is_ready BOOLEAN NOT NULL DEFAULT 0, is_canceled BOOLEAN NOT NULL DEFAULT 0, important BOOLEAN NOT NULL DEFAULT 1)')
     base.commit()
     base.close()
     return
@@ -137,7 +148,6 @@ def set_timezone(db_path: str, user_id: int, timezone: str):
         f'UPDATE users SET timezone = {timezone} WHERE user_id = {user_id}')
     base.commit()
     base.close()
-    return logging.info(f'timezone changed for user {user_id}')
 
 
 def add_time(db_path: str, user_id: int, time: str):
@@ -147,8 +157,6 @@ def add_time(db_path: str, user_id: int, time: str):
         f'INSERT INTO time_{user_id} (time, status) VALUES ("{time}", 1) ON CONFLICT(time) DO UPDATE SET status=1')
     base.commit()
     base.close()
-    db_name = db_path.split()[-1]
-    return logging.info(f'{time} added to time_{user_id} in {db_name}')
 
 
 def add_task(db_path: str, user_id: int, text: str):
@@ -157,8 +165,6 @@ def add_task(db_path: str, user_id: int, text: str):
     cursor.execute(f'INSERT INTO user_{user_id} (text) VALUES ("{text}")')
     base.commit()
     base.close()
-    db_name = db_path.split()[-1]
-    return logging.info(f'task "{text}" added to user_{user_id} in {db_name}')
 
 
 def mark_ready(db_path: str, user_id: int, id: int):
@@ -167,8 +173,22 @@ def mark_ready(db_path: str, user_id: int, id: int):
     cursor.execute(f'UPDATE user_{user_id} SET is_ready = 1 WHERE id = {id}')
     base.commit()
     base.close()
-    db_name = db_path.split()[-1]
-    return logging.info(f'task {id} in {db_name} is ready')
+
+
+def mark_important(db_path: str, user_id: int, id: int):
+    base = sqlite3.connect(db_path)
+    cursor = base.cursor()
+    cursor.execute(f'UPDATE user_{user_id} SET important = 1 WHERE id = {id}')
+    base.commit()
+    base.close()
+
+
+def mark_unimportant(db_path: str, user_id: int, id: int):
+    base = sqlite3.connect(db_path)
+    cursor = base.cursor()
+    cursor.execute(f'UPDATE user_{user_id} SET important = 0 WHERE id = {id}')
+    base.commit()
+    base.close()
 
 
 def mark_canceled(db_path: str, user_id: int, id: int):
@@ -178,8 +198,6 @@ def mark_canceled(db_path: str, user_id: int, id: int):
         f'UPDATE user_{user_id} SET is_canceled = 1 WHERE id = {id}')
     base.commit()
     base.close()
-    db_name = db_path.split()[-1]
-    return logging.info(f'task {id} in {db_name} is canceled')
 
 
 def restore(db_path: str, user_id: int, id: int):
@@ -189,8 +207,6 @@ def restore(db_path: str, user_id: int, id: int):
         f'UPDATE user_{user_id} SET is_ready = 0, is_canceled = 0 WHERE id = {id}')
     base.commit()
     base.close()
-    db_name = db_path.split()[-1]
-    return logging.info(f'task {id} in {db_name} is restored')
 
 
 def delete_task(db_path: str, user_id: int, id: int):
@@ -201,8 +217,6 @@ def delete_task(db_path: str, user_id: int, id: int):
     base.commit()
     base.close()
     clear_all(db_path, user_id)
-    db_name = db_path.split()[-1]
-    return logging.info(f'from user_{user_id} in {db_name} deleted task {id}')
 
 
 def edit_task(db_path: str, user_id: int, id: int, text: str):
@@ -238,5 +252,3 @@ def delete_time(db_path: str, user_id: int, time: str):
         f'DELETE FROM time_{user_id} WHERE time = "{time}"')
     base.commit()
     base.close()
-    db_name = db_path.split()[-1]
-    return logging.info(f'from time_{user_id} in {db_name} deleted task {time}')

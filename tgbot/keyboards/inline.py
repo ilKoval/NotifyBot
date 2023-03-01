@@ -15,13 +15,23 @@ def tasks_menu(data_list: list) -> InlineKeyboardMarkup:
     tasks = InlineKeyboardMarkup()
     for task in data_list:
         if task[2] == 0 and task[3] == 0:
-            detail = InlineKeyboardButton(
-                task[1], callback_data=f'{task[0]} detail')
+            if task[4]:
+                mark_important = InlineKeyboardButton(
+                    '🔕', callback_data=f'{task[0]} unimportant')
+                detail = InlineKeyboardButton(
+                    f'{task[1]}', callback_data=f'{task[0]} detail')
+            else:
+                mark_important = InlineKeyboardButton(
+                    '🔔', callback_data=f'{task[0]} important')
+                detail = InlineKeyboardButton(
+                    f'🔕{task[1]}', callback_data=f'{task[0]} detail')
+
             mark_ready = InlineKeyboardButton(
                 '✅', callback_data=f'{task[0]} ready')
             mark_canceled = InlineKeyboardButton(
                 '🚫', callback_data=f'{task[0]} cancel')
-            tasks.add(detail).add(mark_ready, mark_canceled)
+
+            tasks.add(detail).add(mark_ready, mark_canceled, mark_important)
         else:
             pass
     add_task = InlineKeyboardButton(
